@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Test - Flow Generator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0a0a0b;
+            --card: #141416;
+            --border: #27272a;
+            --text: #fafafa;
+            --muted: #71717a;
+            --green: #22c55e;
+            --cyan: #06b6d4;
+            --red: #ef4444;
+            --yellow: #eab308;
+            --purple: #a855f7;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .card h2 {
+            font-size: 16px;
+            color: var(--cyan);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card h2 .step {
+            background: var(--cyan);
+            color: #000;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .input-group {
+            margin-bottom: 12px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 13px;
+            font-family: 'Consolas', monospace;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--cyan);
+        }
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--green), #16a34a);
+            color: #fff;
+        }
+        .btn-cyan {
+            background: var(--cyan);
+            color: #000;
+        }
+        .btn-purple {
+            background: var(--purple);
+            color: #fff;
+        }
+        .status {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: 'Consolas', monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .status.success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid var(--green);
+            color: var(--green);
+        }
+        .status.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--red);
+            color: var(--red);
+        }
+        .status.info {
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+        }
+        .status.warn {
+            background: rgba(234, 179, 8, 0.1);
+            border: 1px solid var(--yellow);
+            color: var(--yellow);
+        }
+        
+        /* Reference Images */
+        .ref-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .ref-slot {
+            aspect-ratio: 1;
+            background: var(--bg);
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 24px;
+            color: var(--muted);
+            position: relative;
+            overflow: hidden;
+        }
+        .ref-slot:hover {
+            border-color: var(--cyan);
+        }
+        .ref-slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .ref-slot .remove {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: var(--red);
+            color: #fff;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .ref-slot .id-badge {
+            position: absolute;
+            bottom: 2px;
+            left: 2px;
+            right: 2px;
+            background: rgba(0,0,0,0.8);
+            color: var(--green);
+            font-size: 8px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        /* Result Images */
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .result-img {
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .result-img img {
+            width: 100%;
+            display: block;
+        }
+        
+        /* Full width card */
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        /* Log */
+        .log-area {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 11px;
+            font-family: 'Consolas', monospace;
+        }
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        .log-entry .time {
+            color: var(--muted);
+        }
+        .log-entry.error { color: var(--red); }
+        .log-entry.success { color: var(--green); }
+        .log-entry.info { color: var(--cyan); }
+
+        /* Saved data indicator */
+        .saved-indicator {
+            display: inline-block;
+            padding: 2px 8px;
+            background: var(--green);
+            color: #000;
+            font-size: 10px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Mini Test - Flow Generator</h1>
+        
+        <div class="grid">
+            <!-- STEP 1: Verify Session -->
+            <div class="card">
+                <h2><span class="step">1</span> Xác thực Cookie</h2>
+                <div class="input-group">
+                    <label>Cookie (từ labs.google)</label>
+                    <textarea id="cookie" placeholder="Paste full cookie string here..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="verifySession()">🔐 Xác thực</button>
+                <div id="verify-status" class="status" style="display:none"></div>
+            </div>
+
+            <!-- STEP 2: Create Project -->
+            <div class="card">
+                <h2><span class="step">2</span> Tạo Project</h2>
+                <div class="input-group">
+                    <label>Tên Project (tùy chọn)</label>
+                    <input type="text" id="project-name" placeholder="My Project">
+                </div>
+                <div class="input-group">
+                    <label>Hoặc nhập Project ID có sẵn</label>
+                    <input type="text" id="project-id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                </div>
+                <button class="btn btn-cyan" onclick="createProject()">📁 Tạo Project</button>
+                <div id="project-status" class="status" style="display:none"></div>
+            </div>
+
+            <!-- STEP 3: Upload Reference -->
+            <div class="card">
+                <h2><span class="step">3</span> Upload Ảnh Tham Chiếu</h2>
+                <div class="input-group">
+                    <label>Token (Bearer)</label>
+                    <input type="text" id="token" placeholder="ya29.xxx...">
+                </div>
+                <div class="ref-grid" id="ref-grid">
+                    <div class="ref-slot" onclick="addRefImage(0)">+</div>
+                    <div class="ref-slot" onclick="addRefImage(1)">+</div>
+                    <div class="ref-slot" onclick="addRefImage(2)">+</div>
+                    <div class="ref-slot" onclick="addRefImage(3)">+</div>
+                </div>
+                <button class="btn btn-purple" onclick="uploadAllRefs()">📤 Upload tất cả</button>
+                <div id="upload-status" class="status" style="display:none"></div>
+            </div>
+
+            <!-- STEP 4: Generate -->
+            <div class="card">
+                <h2><span class="step">4</span> Generate Ảnh</h2>
+                <div class="input-group">
+                    <label>Prompt</label>
+                    <textarea id="prompt" placeholder="Mô tả ảnh bạn muốn tạo...">A beautiful sunset over mountains, cinematic lighting</textarea>
+                </div>
+                <div class="input-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label>Model</label>
+                        <select id="model">
+                            <option value="GEM_PIX_2">Nano Pro (nhanh)</option>
+                            <option value="IMAGEN_3_5">Imagen 3.5</option>
+                            <option value="R2I">Reference to Image</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Aspect Ratio</label>
+                        <select id="aspect">
+                            <option value="IMAGE_ASPECT_RATIO_SQUARE">1:1</option>
+                            <option value="IMAGE_ASPECT_RATIO_LANDSCAPE">16:9</option>
+                            <option value="IMAGE_ASPECT_RATIO_PORTRAIT">9:16</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="generateImages()">🎨 Generate</button>
+                <div id="gen-status" class="status" style="display:none"></div>
+            </div>
+
+            <!-- Results -->
+            <div class="card full-width">
+                <h2>🖼️ Kết quả</h2>
+                <div id="result-grid" class="result-grid">
+                    <div style="color: var(--muted); text-align: center; grid-column: 1/-1; padding: 40px;">
+                        Chưa có ảnh nào
+                    </div>
+                </div>
+            </div>
+
+            <!-- Log -->
+            <div class="card full-width">
+                <h2>📋 Log</h2>
+                <div id="log-area" class="log-area"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let refImages = [null, null, null, null]; // { base64, mimeType, mediaId }
+        let currentProjectId = '';
+        let currentToken = '';
+
+        // Load saved data
+        function loadSaved() {
+            const saved = localStorage.getItem('mini_test_data');
+            if (saved) {
+                const data = JSON.parse(saved);
+                if (data.cookie) document.getElementById('cookie').value = data.cookie;
+                if (data.token) {
+                    document.getElementById('token').value = data.token;
+                    currentToken = data.token;
+                }
+                if (data.projectId) {
+                    document.getElementById('project-id').value = data.projectId;
+                    currentProjectId = data.projectId;
+                }
+                log('info', 'Loaded saved credentials');
+            }
+        }
+
+        function saveData() {
+            const data = {
+                cookie: document.getElementById('cookie').value,
+                token: document.getElementById('token').value || currentToken,
+                projectId: document.getElementById('project-id').value || currentProjectId
+            };
+            localStorage.setItem('mini_test_data', JSON.stringify(data));
+        }
+
+        // Log function
+        function log(type, msg) {
+            const area = document.getElementById('log-area');
+            const time = new Date().toLocaleTimeString('vi-VN');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerHTML = `<span class="time">[${time}]</span> ${msg}`;
+            area.insertBefore(entry, area.firstChild);
+        }
+
+        function showStatus(id, type, msg) {
+            const el = document.getElementById(id);
+            el.style.display = 'block';
+            el.className = `status ${type}`;
+            el.textContent = msg;
+        }
+
+        // STEP 1: Verify Session
+        async function verifySession() {
+            const cookie = document.getElementById('cookie').value.trim();
+            if (!cookie) {
+                showStatus('verify-status', 'error', 'Chưa nhập cookie!');
+                return;
+            }
+
+            log('info', 'Verifying session...');
+            showStatus('verify-status', 'info', 'Đang xác thực...');
+
+            try {
+                const res = await fetch('/api/proxy/verify-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cookie })
+                });
+
+                const data = await res.json();
+                console.log('Verify response:', data);
+
+                if (data.success) {
+                    const email = data.sessionData?.user?.email || 'Unknown';
+                    let msg = `✅ Xác thực thành công!\nEmail: ${email}`;
+                    
+                    if (data.accessToken) {
+                        currentToken = data.accessToken;
+                        document.getElementById('token').value = data.accessToken;
+                        msg += `\n\nToken: ${data.accessToken.substring(0, 50)}...`;
+                        log('success', `Got token for ${email}`);
+                    } else {
+                        msg += `\n\n⚠️ Không lấy được token tự động.\nVui lòng copy token thủ công từ DevTools.`;
+                        log('warn', 'Token not auto-extracted, need manual input');
+                    }
+                    
+                    showStatus('verify-status', 'success', msg);
+                    saveData();
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+            } catch (e) {
+                log('error', `Verify failed: ${e.message}`);
+                showStatus('verify-status', 'error', `❌ Lỗi: ${e.message}`);
+            }
+        }
+
+        // STEP 2: Create Project
+        async function createProject() {
+            // Check if manual project ID entered
+            const manualId = document.getElementById('project-id').value.trim();
+            if (manualId) {
+                currentProjectId = manualId;
+                showStatus('project-status', 'success', `✅ Đã set Project ID: ${manualId}`);
+                log('success', `Using manual Project ID: ${manualId}`);
+                saveData();
+                return;
+            }
+
+            const cookie = document.getElementById('cookie').value.trim();
+            if (!cookie) {
+                showStatus('project-status', 'error', 'Chưa có cookie!');
+                return;
+            }
+
+            const projectName = document.getElementById('project-name').value.trim() || `Project_${Date.now()}`;
+            
+            log('info', `Creating project: ${projectName}`);
+            showStatus('project-status', 'info', 'Đang tạo project...');
+
+            try {
+                const res = await fetch('/api/proxy/create-project', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cookie, projectName })
+                });
+
+                const data = await res.json();
+                console.log('Create project response:', data);
+
+                if (data.success && data.projectId) {
+                    currentProjectId = data.projectId;
+                    document.getElementById('project-id').value = data.projectId;
+                    showStatus('project-status', 'success', `✅ Tạo thành công!\nProject ID: ${data.projectId}`);
+                    log('success', `Created project: ${data.projectId}`);
+                    saveData();
+                } else {
+                    throw new Error(data.error || 'Failed to create project');
+                }
+            } catch (e) {
+                log('error', `Create project failed: ${e.message}`);
+                showStatus('project-status', 'error', `❌ Lỗi: ${e.message}\n\nHãy thử nhập Project ID thủ công.`);
+            }
+        }
+
+        // STEP 3: Reference Images
+        function renderRefGrid() {
+            const grid = document.getElementById('ref-grid');
+            grid.innerHTML = refImages.map((ref, i) => {
+                if (ref) {
+                    return `
+                        <div class="ref-slot">
+                            <img src="${ref.base64}">
+                            <button class="remove" onclick="removeRef(${i})">✕</button>
+                            ${ref.mediaId ? `<span class="id-badge">${ref.mediaId.substring(0, 20)}...</span>` : ''}
+                        </div>
+                    `;
+                }
+                return `<div class="ref-slot" onclick="addRefImage(${i})">+</div>`;
+            }).join('');
+        }
+
+        function addRefImage(index) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        refImages[index] = {
+                            base64: ev.target.result,
+                            mimeType: file.type,
+                            mediaId: null
+                        };
+                        renderRefGrid();
+                        log('info', `Added ref image ${index + 1}: ${file.name}`);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            input.click();
+        }
+
+        function removeRef(index) {
+            refImages[index] = null;
+            renderRefGrid();
+            log('info', `Removed ref image ${index + 1}`);
+        }
+
+        async function uploadAllRefs() {
+            const token = document.getElementById('token').value.trim() || currentToken;
+            if (!token) {
+                showStatus('upload-status', 'error', 'Chưa có token!');
+                return;
+            }
+
+            const toUpload = refImages.filter(r => r && !r.mediaId);
+            if (toUpload.length === 0) {
+                showStatus('upload-status', 'warn', 'Không có ảnh mới cần upload!');
+                return;
+            }
+
+            log('info', `Uploading ${toUpload.length} reference images...`);
+            showStatus('upload-status', 'info', `Đang upload ${toUpload.length} ảnh...`);
+
+            let success = 0;
+            let failed = 0;
+
+            for (let i = 0; i < refImages.length; i++) {
+                const ref = refImages[i];
+                if (!ref || ref.mediaId) continue;
+
+                try {
+                    // Extract base64 without header
+                    const base64Data = ref.base64.split(',')[1];
+                    
+                    const payload = {
+                        imageInput: {
+                            rawImageBytes: base64Data,
+                            mimeType: ref.mimeType,
+                            isUserUploaded: true,
+                            aspectRatio: 'IMAGE_ASPECT_RATIO_SQUARE'
+                        },
+                        clientContext: {
+                            sessionId: `;${Date.now()}`,
+                            tool: 'ASSET_MANAGER'
+                        }
+                    };
+
+                    const res = await fetch('/api/proxy/uploadUserImage', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ bearerToken: token, payload })
+                    });
+
+                    const data = await res.json();
+                    console.log(`Upload ${i + 1} response:`, data);
+
+                    if (data.success && data.mediaId) {
+                        refImages[i].mediaId = data.mediaId;
+                        success++;
+                        log('success', `Uploaded ref ${i + 1}: ${data.mediaId.substring(0, 30)}...`);
+                    } else {
+                        throw new Error(data.error || 'No mediaId returned');
+                    }
+                } catch (e) {
+                    failed++;
+                    log('error', `Upload ref ${i + 1} failed: ${e.message}`);
+                }
+            }
+
+            renderRefGrid();
+
+            if (failed === 0) {
+                showStatus('upload-status', 'success', `✅ Upload thành công ${success} ảnh!`);
+            } else {
+                showStatus('upload-status', 'warn', `⚠️ Upload: ${success} thành công, ${failed} thất bại`);
+            }
+        }
+
+        // STEP 4: Generate
+        async function generateImages() {
+            const token = document.getElementById('token').value.trim() || currentToken;
+            const projectId = document.getElementById('project-id').value.trim() || currentProjectId;
+            const prompt = document.getElementById('prompt').value.trim();
+            const model = document.getElementById('model').value;
+            const aspect = document.getElementById('aspect').value;
+
+            if (!token) {
+                showStatus('gen-status', 'error', 'Chưa có token!');
+                return;
+            }
+            if (!projectId) {
+                showStatus('gen-status', 'error', 'Chưa có Project ID!');
+                return;
+            }
+            if (!prompt) {
+                showStatus('gen-status', 'error', 'Chưa nhập prompt!');
+                return;
+            }
+
+            log('info', `Generating with model: ${model}`);
+            showStatus('gen-status', 'info', 'Đang generate...');
+
+            try {
+                // Build request
+                const request = {
+                    clientContext: {
+                        sessionId: `;${Date.now()}`,
+                        tool: 'PINHOLE'
+                    },
+                    seed: Math.floor(Math.random() * 900000) + 100000,
+                    imageModelName: model,
+                    imageAspectRatio: aspect,
+                    prompt: prompt,
+                    imageInputs: []
+                };
+
+                // Add reference images if any uploaded
+                const uploadedRefs = refImages.filter(r => r && r.mediaId);
+                if (uploadedRefs.length > 0) {
+                    request.imageInputs = uploadedRefs.map(r => ({
+                        name: r.mediaId,
+                        imageInputType: 'IMAGE_INPUT_TYPE_REFERENCE'
+                    }));
+                    log('info', `Using ${uploadedRefs.length} reference images`);
+                }
+
+                const payload = { requests: [request] };
+
+                const res = await fetch('/api/proxy/batchGenerateImages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bearerToken: token, projectId, payload })
+                });
+
+                const data = await res.json();
+                console.log('Generate response:', data);
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // Extract images
+                const images = [];
+                if (data.media && Array.isArray(data.media)) {
+                    data.media.forEach(m => {
+                        // Check multiple paths
+                        const encoded = m?.image?.generatedImage?.encodedImage ||
+                                        m?.image?.encodedImage ||
+                                        m?.generatedImage?.encodedImage;
+                        const url = m?.image?.generatedImage?.fileUrl ||
+                                    m?.image?.fileUrl ||
+                                    m?.fileUrl;
+                        
+                        if (encoded) {
+                            images.push(`data:image/png;base64,${encoded}`);
+                        } else if (url) {
+                            images.push(url);
+                        }
+                    });
+                }
+
+                if (images.length > 0) {
+                    showStatus('gen-status', 'success', `✅ Tạo thành công ${images.length} ảnh!`);
+                    log('success', `Generated ${images.length} images`);
+                    displayResults(images);
+                } else {
+                    // Maybe async operation
+                    if (data.name) {
+                        showStatus('gen-status', 'warn', `⏳ Đang xử lý... Operation: ${data.name}`);
+                        log('info', `Async operation: ${data.name}`);
+                    } else {
+                        showStatus('gen-status', 'warn', `⚠️ Không tìm thấy ảnh trong response.\nRaw: ${JSON.stringify(data).substring(0, 300)}`);
+                        log('warn', 'No images in response');
+                    }
+                }
+
+            } catch (e) {
+                log('error', `Generate failed: ${e.message}`);
+                showStatus('gen-status', 'error', `❌ Lỗi: ${e.message}`);
+            }
+        }
+
+        function displayResults(images) {
+            const grid = document.getElementById('result-grid');
+            grid.innerHTML = images.map((img, i) => `
+                <div class="result-img">
+                    <img src="${img}" alt="Generated ${i + 1}" onclick="window.open('${img}', '_blank')">
+                </div>
+            `).join('');
+        }
+
+        // Init
+        loadSaved();
+        renderRefGrid();
+        log('info', 'Mini Test ready!');
+    </script>
+</body>
+</html>

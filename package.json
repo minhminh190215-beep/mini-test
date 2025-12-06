@@ -1,0 +1,11 @@
+{
+  "name": "flow-mini-test",
+  "version": "1.0.0",
+  "description": "Mini test for Flow Generator",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node api/index.js"
+  }
+}
