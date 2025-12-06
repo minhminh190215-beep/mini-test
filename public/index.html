@@ -561,13 +561,19 @@
         async function uploadAllRefs() {
             const token = document.getElementById('token').value.trim() || currentToken;
             if (!token) {
-                showStatus('upload-status', 'error', 'Chưa có token!');
+                showStatus('upload-status', 'error', 'Chưa có token! Hãy nhập token trước.');
                 return;
             }
 
             const toUpload = refImages.filter(r => r && !r.mediaId);
+            const alreadyUploaded = refImages.filter(r => r && r.mediaId);
+            
             if (toUpload.length === 0) {
-                showStatus('upload-status', 'warn', 'Không có ảnh mới cần upload!');
+                if (alreadyUploaded.length > 0) {
+                    showStatus('upload-status', 'success', `✅ Đã có ${alreadyUploaded.length} ảnh được upload!`);
+                } else {
+                    showStatus('upload-status', 'warn', 'Chưa có ảnh nào! Hãy thêm ảnh trước.');
+                }
                 return;
             }
 
@@ -576,19 +582,22 @@
 
             let success = 0;
             let failed = 0;
+            let errors = [];
 
             for (let i = 0; i < refImages.length; i++) {
                 const ref = refImages[i];
                 if (!ref || ref.mediaId) continue;
 
                 try {
+                    log('info', `Uploading image ${i + 1}...`);
+                    
                     // Extract base64 without header
                     const base64Data = ref.base64.split(',')[1];
                     
                     const payload = {
                         imageInput: {
                             rawImageBytes: base64Data,
-                            mimeType: ref.mimeType,
+                            mimeType: ref.mimeType || 'image/jpeg',
                             isUserUploaded: true,
                             aspectRatio: 'IMAGE_ASPECT_RATIO_SQUARE'
                         },
@@ -598,34 +607,62 @@
                         }
                     };
 
+                    console.log(`Upload ${i + 1} payload:`, { 
+                        mimeType: ref.mimeType, 
+                        base64Length: base64Data?.length,
+                        token: token.substring(0, 20) + '...'
+                    });
+
                     const res = await fetch('/api/proxy/uploadUserImage', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ bearerToken: token, payload })
                     });
 
-                    const data = await res.json();
-                    console.log(`Upload ${i + 1} response:`, data);
+                    const text = await res.text();
+                    console.log(`Upload ${i + 1} raw response:`, text.substring(0, 500));
+                    
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        throw new Error(`Invalid JSON response: ${text.substring(0, 100)}`);
+                    }
 
                     if (data.success && data.mediaId) {
                         refImages[i].mediaId = data.mediaId;
                         success++;
-                        log('success', `Uploaded ref ${i + 1}: ${data.mediaId.substring(0, 30)}...`);
+                        log('success', `✅ Uploaded ref ${i + 1}: ${data.mediaId.substring(0, 40)}...`);
+                    } else if (data.error) {
+                        throw new Error(data.error);
                     } else {
-                        throw new Error(data.error || 'No mediaId returned');
+                        // Try to extract mediaId from raw response
+                        const rawId = data?.raw?.mediaGenerationId?.mediaGenerationId || 
+                                     data?.raw?.name || 
+                                     data?.mediaGenerationId?.mediaGenerationId;
+                        if (rawId) {
+                            refImages[i].mediaId = rawId;
+                            success++;
+                            log('success', `✅ Uploaded ref ${i + 1}: ${rawId.substring(0, 40)}...`);
+                        } else {
+                            throw new Error('No mediaId in response: ' + JSON.stringify(data).substring(0, 200));
+                        }
                     }
                 } catch (e) {
                     failed++;
-                    log('error', `Upload ref ${i + 1} failed: ${e.message}`);
+                    errors.push(`Ref ${i + 1}: ${e.message}`);
+                    log('error', `❌ Upload ref ${i + 1} failed: ${e.message}`);
                 }
             }
 
             renderRefGrid();
 
             if (failed === 0) {
-                showStatus('upload-status', 'success', `✅ Upload thành công ${success} ảnh!`);
+                showStatus('upload-status', 'success', `✅ Upload thành công ${success} ảnh!\nSẵn sàng generate.`);
+            } else if (success > 0) {
+                showStatus('upload-status', 'warn', `⚠️ ${success} thành công, ${failed} thất bại\n${errors.join('\n')}`);
             } else {
-                showStatus('upload-status', 'warn', `⚠️ Upload: ${success} thành công, ${failed} thất bại`);
+                showStatus('upload-status', 'error', `❌ Upload thất bại!\n${errors.join('\n')}`);
             }
         }
 
@@ -648,6 +685,53 @@
             if (!prompt) {
                 showStatus('gen-status', 'error', 'Chưa nhập prompt!');
                 return;
+            }
+
+            // AUTO-UPLOAD: Check if any ref images need uploading
+            const needUpload = refImages.filter(r => r && !r.mediaId);
+            if (needUpload.length > 0) {
+                log('info', `Auto-uploading ${needUpload.length} reference images...`);
+                showStatus('gen-status', 'info', `Đang upload ${needUpload.length} ảnh tham chiếu...`);
+                
+                for (let i = 0; i < refImages.length; i++) {
+                    const ref = refImages[i];
+                    if (!ref || ref.mediaId) continue;
+
+                    try {
+                        const base64Data = ref.base64.split(',')[1];
+                        const payload = {
+                            imageInput: {
+                                rawImageBytes: base64Data,
+                                mimeType: ref.mimeType,
+                                isUserUploaded: true,
+                                aspectRatio: aspect
+                            },
+                            clientContext: {
+                                sessionId: `;${Date.now()}`,
+                                tool: 'ASSET_MANAGER'
+                            }
+                        };
+
+                        const res = await fetch('/api/proxy/uploadUserImage', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ bearerToken: token, payload })
+                        });
+
+                        const data = await res.json();
+                        console.log(`Auto-upload ${i + 1} response:`, data);
+
+                        if (data.success && data.mediaId) {
+                            refImages[i].mediaId = data.mediaId;
+                            log('success', `Auto-uploaded ref ${i + 1}: ${data.mediaId.substring(0, 30)}...`);
+                        } else {
+                            throw new Error(data.error || 'No mediaId');
+                        }
+                    } catch (e) {
+                        log('error', `Auto-upload ref ${i + 1} failed: ${e.message}`);
+                    }
+                }
+                renderRefGrid();
             }
 
             log('info', `Generating with model: ${model}`);
@@ -674,7 +758,9 @@
                         name: r.mediaId,
                         imageInputType: 'IMAGE_INPUT_TYPE_REFERENCE'
                     }));
-                    log('info', `Using ${uploadedRefs.length} reference images`);
+                    log('info', `Using ${uploadedRefs.length} reference images with IDs`);
+                } else if (refImages.filter(r => r).length > 0) {
+                    log('warn', 'Reference images exist but none have mediaId - upload may have failed');
                 }
 
                 const payload = { requests: [request] };
