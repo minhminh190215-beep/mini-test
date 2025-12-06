@@ -211,13 +211,23 @@ async function handleUploadImage(req, res, body) {
     const { bearerToken, payload } = body;
     
     if (!bearerToken || !payload) {
+        console.log('[uploadImage] Missing params:', { hasBearerToken: !!bearerToken, hasPayload: !!payload });
         return res.status(400).json({ error: 'bearerToken and payload are required' });
     }
 
     try {
         console.log('[uploadImage] Starting upload...');
+        console.log('[uploadImage] Token:', bearerToken.substring(0, 30) + '...');
+        console.log('[uploadImage] Payload keys:', Object.keys(payload));
+        console.log('[uploadImage] ImageInput:', {
+            hasMimeType: !!payload?.imageInput?.mimeType,
+            hasRawBytes: !!payload?.imageInput?.rawImageBytes,
+            bytesLength: payload?.imageInput?.rawImageBytes?.length,
+            aspectRatio: payload?.imageInput?.aspectRatio
+        });
 
         const url = `${SANDBOX_URL}:uploadUserImage?key=${API_KEY}`;
+        console.log('[uploadImage] URL:', url);
         
         const response = await fetch(url, {
             method: 'POST',
@@ -230,20 +240,33 @@ async function handleUploadImage(req, res, body) {
             body: JSON.stringify(payload)
         });
 
-        const data = await response.json();
-        console.log('[uploadImage] Response:', JSON.stringify(data).substring(0, 500));
+        const text = await response.text();
+        console.log('[uploadImage] Status:', response.status);
+        console.log('[uploadImage] Response:', text.substring(0, 1000));
 
-        if (!response.ok) {
-            throw new Error(data?.error?.message || `Upload failed: ${response.status}`);
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error('[uploadImage] JSON parse error:', e.message);
+            throw new Error(`Invalid JSON response: ${text.substring(0, 200)}`);
         }
 
-        // Extract media ID
+        if (!response.ok) {
+            console.error('[uploadImage] HTTP error:', response.status, data);
+            throw new Error(data?.error?.message || `Upload failed: ${response.status} - ${text.substring(0, 200)}`);
+        }
+
+        // Extract media ID from multiple possible locations
         const mediaId = data?.mediaGenerationId?.mediaGenerationId || 
                        data?.name || 
-                       data?.imageId;
+                       data?.imageId ||
+                       data?.id;
+
+        console.log('[uploadImage] Extracted mediaId:', mediaId);
 
         res.status(200).json({
-            success: true,
+            success: !!mediaId,
             mediaId: mediaId,
             raw: data
         });
